@@ -29,6 +29,8 @@ services:
    REDIS_URL: redis://redis:6379/0
    JWT_SECRET: ${JWT_SECRET:-energy-break-local-demo-change-before-deployment}
    SEED_DEMO: ${SEED_DEMO:-true}
+   RUN_LEASE_SECONDS: ${RUN_LEASE_SECONDS:-15}
+   RUN_MAX_ATTEMPTS: ${RUN_MAX_ATTEMPTS:-5}
   ports: ["${BACKEND_PORT:-19214}:8000"]
   volumes: ["artifacts:/artifacts"]
   depends_on:

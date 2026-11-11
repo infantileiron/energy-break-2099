@@ -30,10 +30,16 @@ def seed():
   db.commit()
   if not db.get(ChangeStudy,"demo-study"):db.add(ChangeStudy(id="demo-study",name="一号窑换料工况复核",dataset_id="demo-dataset",window_id="demo-window",config={"penalty":6.,"min_segment":24,"anomaly_threshold":3.5,"noise_floor":.02}))
   db.commit()
-  if not db.get(ChangeRun,"demo-run"):db.add(ChangeRun(id="demo-run",study_id="demo-study",status="queued",result={},error=""));db.commit();compute(db,"demo-run")
-  if not db.get(IncidentReview,"demo-review"):db.add(IncidentReview(id="demo-review",run_id="demo-run",action="核对10月11日与21日换料记录，单独复查三个尖峰时段的计量和批次，暂不认定为设备故障。",state="approved",reviewer="admin@energy.demo"))
-  db.commit()
-  if not db.get(Report,"demo-report"):db.add(Report(id="demo-report",review_id="demo-review",title="一号窑十月能耗复核底稿",snapshot={"result":db.get(ChangeRun,"demo-run").result,"action":db.get(IncidentReview,"demo-review").action,"reviewer":"admin@energy.demo"}))
-  db.commit()
+  if not db.get(ChangeRun,"demo-run"):
+   db.add(ChangeRun(id="demo-run",study_id="demo-study",status="queued",result={},error="",attempts=0,claimed_at=None,claimed_by="",claim_token=""));db.commit()
+   compute(db,"demo-run")
+  db.expire_all()
+  run=db.get(ChangeRun,"demo-run")
+  # A manually repeated seed may race the worker; only archive a completed run.
+  if run is not None and run.status=="completed":
+   if not db.get(IncidentReview,"demo-review"):db.add(IncidentReview(id="demo-review",run_id="demo-run",action="核对10月11日与21日换料记录，单独复查三个尖峰时段的计量和批次，暂不认定为设备故障。",state="approved",reviewer="admin@energy.demo"))
+   db.commit()
+   if not db.get(Report,"demo-report"):db.add(Report(id="demo-report",review_id="demo-review",title="一号窑十月能耗复核底稿",snapshot={"result":run.result,"action":db.get(IncidentReview,"demo-review").action,"reviewer":"admin@energy.demo"}))
+   db.commit()
   return {cls.__tablename__:db.scalar(select(func.count()).select_from(cls)) for cls in [User,MeterDataset,OperatingWindow,ChangeStudy,ChangeRun,IncidentReview,Report]}
 if __name__=="__main__":print(json.dumps(seed(),ensure_ascii=False))
