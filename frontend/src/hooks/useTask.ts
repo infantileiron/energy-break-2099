@@ -1,0 +1,1 @@
+import {useState} from "react";export function useTask(){const [error,setError]=useState(""),[busy,setBusy]=useState(false);async function act(fn:()=>Promise<unknown>){setBusy(true);setError("");try{await fn()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}return {error,busy,act}}

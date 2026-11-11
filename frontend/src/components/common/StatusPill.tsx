@@ -1,0 +1,1 @@
+const labels:Record<string,string>={queued:"排队中",running:"计算中",completed:"已完成",failed:"失败",submitted:"待复核",approved:"已批准"};export default function StatusPill({status}:{status:string}){return <span className={"status "+status}>{labels[status]||status}</span>}

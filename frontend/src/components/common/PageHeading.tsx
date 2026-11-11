@@ -1,0 +1,1 @@
+export default function PageHeading({index,title,note}:{index:string;title:string;note:string}){return <header className="page-heading"><p className="eyebrow">KILN LOG / {index}</p><h1>{title}</h1><p>{note}</p></header>}

@@ -1,0 +1,2 @@
+-- Baseline: SQLAlchemy metadata creates datasets, operating_windows, studies, runs, reviews, reports, users and audits on a new PostgreSQL database.
+-- Observations and immutable report snapshots use JSON. Existing database upgrades require a reviewed migration; no destructive auto-upgrades.

@@ -1,0 +1,71 @@
+name: ${COMPOSE_PROJECT_NAME:-energy-break}
+services:
+ db:
+  image: postgres:16-alpine
+  container_name: ${COMPOSE_PROJECT_NAME:-energy-break}-db
+  environment: {POSTGRES_DB: energy, POSTGRES_USER: energy, POSTGRES_PASSWORD: energy_demo}
+  ports: ["${DB_PORT:-17714}:5432"]
+  volumes: ["db-data:/var/lib/postgresql/data"]
+  healthcheck:
+   test: ["CMD-SHELL","pg_isready -U energy -d energy"]
+   interval: 5s
+   timeout: 5s
+   retries: 25
+ redis:
+  image: redis:7.4-alpine
+  container_name: ${COMPOSE_PROJECT_NAME:-energy-break}-redis
+  command: ["redis-server","--appendonly","yes"]
+  volumes: ["redis-data:/data"]
+  healthcheck:
+   test: ["CMD","redis-cli","ping"]
+   interval: 5s
+   timeout: 3s
+   retries: 15
+ backend:
+  build: ./backend
+  container_name: ${COMPOSE_PROJECT_NAME:-energy-break}-backend
+  environment: &environment
+   DATABASE_URL: postgresql+psycopg://energy:energy_demo@db:5432/energy
+   REDIS_URL: redis://redis:6379/0
+   JWT_SECRET: ${JWT_SECRET:-energy-break-local-demo-change-before-deployment}
+   SEED_DEMO: ${SEED_DEMO:-true}
+  ports: ["${BACKEND_PORT:-19214}:8000"]
+  volumes: ["artifacts:/artifacts"]
+  depends_on:
+   db: {condition: service_healthy}
+   redis: {condition: service_healthy}
+  healthcheck:
+   test: ["CMD","python","-c","import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+   interval: 5s
+   timeout: 5s
+   retries: 30
+ worker:
+  build: ./backend
+  container_name: ${COMPOSE_PROJECT_NAME:-energy-break}-worker
+  command: ["python","-m","src.worker"]
+  environment: *environment
+  volumes: ["artifacts:/artifacts"]
+  depends_on:
+   db: {condition: service_healthy}
+   redis: {condition: service_healthy}
+   backend: {condition: service_healthy}
+  healthcheck:
+   test: ["CMD","python","-c","import time,pathlib;p=pathlib.Path('/artifacts/worker-heartbeat');assert p.exists() and time.time()-p.stat().st_mtime<20"]
+   interval: 5s
+   timeout: 3s
+   retries: 20
+ frontend:
+  build: ./frontend
+  container_name: ${COMPOSE_PROJECT_NAME:-energy-break}-frontend
+  ports: ["${FRONTEND_PORT:-18214}:80"]
+  depends_on:
+   backend: {condition: service_healthy}
+  healthcheck:
+   test: ["CMD-SHELL","wget -q -O /dev/null http://127.0.0.1/"]
+   interval: 5s
+   timeout: 3s
+   retries: 20
+volumes:
+ db-data:
+ redis-data:
+ artifacts:
